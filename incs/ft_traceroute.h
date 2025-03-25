@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/select.h>
 #include <errno.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -20,6 +21,8 @@
 #include <math.h>
 #include <getopt.h>
 
+#define MAX_HOPS 30
+#define BASE_PORT 33434
 // #define V_FLAG (1 << 0) // 0001
 // #define F_FLAG (1 << 1) // 0010
 // #define N_FLAG (1 << 2) // 0100
