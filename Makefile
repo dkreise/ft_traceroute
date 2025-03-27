@@ -7,7 +7,7 @@ CFLAGS = -Werror -Wextra -Wall #-g -fsanitize=address
 #########
 
 #########
-FILES = main
+FILES = main ft_traceroute
 
 SRC = $(addsuffix .c, $(FILES))
 

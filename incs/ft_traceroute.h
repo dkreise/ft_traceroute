@@ -14,21 +14,33 @@
 #include <arpa/inet.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip.h>
-// #include <bits/getopt_core.h> // not needed
 #include <pthread.h>
 #include <limits.h>
 #include <signal.h>
 #include <math.h>
 #include <getopt.h>
 
-#define MAX_HOPS 30
-#define BASE_PORT 33434
-// #define V_FLAG (1 << 0) // 0001
-// #define F_FLAG (1 << 1) // 0010
-// #define N_FLAG (1 << 2) // 0100
-// #define W_FLAG (1 << 3) // 1000
-// #define L_FLAG (1 << 4) // 10000
-// #define T_FLAG (1 << 5) // 100000
+#define FIRST_TTL_DEFAULT 1
+#define MAX_HOPS_DEFAULT 30
+#define PROBES_PER_HOP_DEFAULT 3
+#define PORT_DEFAULT 33434
+#define NAMES_DEFAULT 1 // true
+
+typedef struct traceroute_info {
+    int udp_socket;
+    int icmp_socket;
+    struct sockaddr_in *ipv4; // ?
+    struct addrinfo *res; // ?
+    struct sockaddr_in dest_addr;
+    int first_ttl;                // -f
+    int max_ttl; // == max hops   // -m
+    int probes_per_hop;           // -q
+    int port;                     // -p (?) maybe not needed
+    int names_conversion;         // -n
+    int* errors;
+} traceroute_info_t;
+
+void traceroute(traceroute_info_t* info);
 
 #define HELP_MESSAGE "Usage:\n\
   ft_traceroute [options] host [ packetlen ]\n\
