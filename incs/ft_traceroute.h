@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <math.h>
 #include <getopt.h>
+#include <ctype.h>
 
 #define FIRST_TTL_DEFAULT 1
 #define MAX_HOPS_DEFAULT 30
@@ -41,6 +42,7 @@ typedef struct traceroute_info {
 } traceroute_info_t;
 
 void traceroute(traceroute_info_t* info);
+int is_num(const char* str);
 
 #define HELP_MESSAGE "Usage:\n\
   ft_traceroute [options] host [ packetlen ]\n\
