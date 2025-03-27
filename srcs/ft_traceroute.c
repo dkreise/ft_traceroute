@@ -19,23 +19,25 @@ void traceroute(traceroute_info_t* info) {
             // Set the destination port to the random value
             dest_addr.sin_port = htons(udp_port);
 
-            // Send the UDP packet
-            sendto(udp_socket, NULL, 0, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-            // printf("Sent UDP packet\n");
+            // Set up timeout
+            struct timeval timeout;
+            timeout.tv_sec = 5;  // 5 seconds timeout
+            timeout.tv_usec = 0;
 
             // (Wait for ICMP response and process it...)
             struct sockaddr_in sender_addr;
             socklen_t addr_len = sizeof(sender_addr);
             char buffer[512];
 
-            // Set up timeout
-            struct timeval timeout;
-            timeout.tv_sec = 5;  // 5 seconds timeout
-            timeout.tv_usec = 0;
-
             fd_set readfds;
             FD_ZERO(&readfds);
             FD_SET(icmp_socket, &readfds);
+
+            struct timeval start_time, end_time;
+            gettimeofday(&start_time, NULL);
+
+            // Send the UDP packet
+            sendto(udp_socket, NULL, 0, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
 
             // Wait for data with timeout
             int select_result = select(icmp_socket + 1, &readfds, NULL, NULL, &timeout);
@@ -51,18 +53,30 @@ void traceroute(traceroute_info_t* info) {
                     exit(EXIT_FAILURE);
                 }
 
+                gettimeofday(&end_time, NULL);  // End timer
+
+                // Calculate the difference in time
+                double seconds = (double)(end_time.tv_sec - start_time.tv_sec);
+                double microseconds = (double)(end_time.tv_usec - start_time.tv_usec);
+                double milliseconds = (seconds * 1000) + (microseconds / 1000);
+
+                // printf("Round-trip time: %ld ms\n", milliseconds);
+
                 struct ip *ip_header = (struct ip *)buffer;
                 struct icmp *icmp_header = (struct icmp *)(buffer + (ip_header->ip_hl << 2));
 
                 // Check if it's an ICMP TTL expired or Destination Unreachable message
                 if (icmp_header->icmp_type == ICMP_TIME_EXCEEDED) {
                     printf("%s ", inet_ntoa(sender_addr.sin_addr));
+                    printf("%.3f ms ", milliseconds);
                 } else if (icmp_header->icmp_type == ICMP_DEST_UNREACH) {
-                    printf("%s (Destination unreachable)\n", inet_ntoa(sender_addr.sin_addr));
+                    printf("%s (Destination unreachable) ", inet_ntoa(sender_addr.sin_addr));
+                    printf("%.3f ms\n", milliseconds);
                     return;  // If the destination is unreachable, we can exit
                 } else if (icmp_header->icmp_type == ICMP_ECHOREPLY) {
                     // We got the final response (destination reached)
-                    printf("%s (Reached destination)\n", inet_ntoa(sender_addr.sin_addr));
+                    printf("%s (Reached destination) ", inet_ntoa(sender_addr.sin_addr));
+                    printf("%.3f ms\n", milliseconds);
                     return;  // Exit the loop when the destination is reached
                 } else {
                     printf("Unknown ICMP type: %d\n", icmp_header->icmp_type);
