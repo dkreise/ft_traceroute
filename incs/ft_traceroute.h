@@ -26,6 +26,7 @@
 #define PROBES_PER_HOP_DEFAULT 3
 #define PORT_DEFAULT 33434
 #define NAMES_DEFAULT 1 // true
+#define TIMEOUT 2 //5 default
 
 typedef struct traceroute_info {
     int udp_socket;
@@ -43,8 +44,8 @@ typedef struct traceroute_info {
 
 typedef struct {
     char ip[INET_ADDRSTRLEN];
-    double rtt[3];  // Store up to 3 RTTs
-    int count;       // Number of times this IP appeared (max 3)
+    double *rtt;            // arr of size probes_per_hop
+    int count;
 } hop_entry_t;
 
 void traceroute(traceroute_info_t* info);

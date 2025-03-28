@@ -1,19 +1,42 @@
 #include "../incs/ft_traceroute.h"
 
+void print_results(hop_entry_t* results, int result_count) {
+    for (int i = 0; i < result_count; i++) {
+        printf(" %s", results[i].ip);
+        for (int j = 0; j < results[i].count; j++) {
+            if (results[i].rtt[j] == -1) {
+                printf(" *");
+            } else {
+                printf("  %.3f ms", results[i].rtt[j]);
+            }
+        }
+    }
+    printf("\n");
+}
+
 void traceroute(traceroute_info_t* info) {
     int udp_socket = info->udp_socket;
     int icmp_socket = info->icmp_socket;
     struct sockaddr_in dest_addr = info->dest_addr;
+    int probes_per_hop = info->probes_per_hop;
     int destination_reached = 0;
 
     for (int ttl = 1; ttl <= info->max_ttl; ttl++) {
-        printf("%d ", ttl);
+        printf("%2d ", ttl);
         // Set the TTL for this packet
         setsockopt(udp_socket, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
-        hop_entry_t results[info->probes_per_hop];
+        hop_entry_t results[probes_per_hop];
+        for (int i = 0; i < probes_per_hop; i++) {
+            results[i].rtt = malloc(probes_per_hop * sizeof(double));
+            if (!results[i].rtt) {
+                perror("malloc");
+                exit(EXIT_FAILURE);
+            }
+            results[i].count = 0;
+        }
         int result_count = 0;
 
-        for (int probe = 0; probe < info->probes_per_hop; probe++) {
+        for (int probe = 0; probe < probes_per_hop; probe++) {
             int udp_port = info->port + ttl + probe;
             // int random_offset = rand() % 1000;  // Random port in the range 33434 - 34434
             // int udp_port = base_port + random_offset;
@@ -24,7 +47,7 @@ void traceroute(traceroute_info_t* info) {
 
             // Set up timeout
             struct timeval timeout;
-            timeout.tv_sec = 5;  // 5 seconds timeout
+            timeout.tv_sec = TIMEOUT;
             timeout.tv_usec = 0;
 
             // (Wait for ICMP response and process it...)
@@ -45,15 +68,13 @@ void traceroute(traceroute_info_t* info) {
             // Wait for data with timeout
             int select_result = select(icmp_socket + 1, &readfds, NULL, NULL, &timeout);
 
-            if (select_result == 0) {
-                // Timeout occurred, no response
+            if (select_result == 0) { // Timeout occurred, no response
                 if (result_count == 0) {
                     printf(" *");
                 } else {
                     results[result_count - 1].rtt[results[result_count - 1].count++] = -1;
                 }
-            } else if (select_result > 0) {
-                // Response received
+            } else if (select_result > 0) { // Response received
                 ssize_t bytes_received = recvfrom(icmp_socket, buffer, sizeof(buffer), 0, (struct sockaddr *)&sender_addr, &addr_len);
                 if (bytes_received < 0) {
                     perror("recvfrom");
@@ -97,25 +118,17 @@ void traceroute(traceroute_info_t* info) {
                     return;
                 }
 
-            } else {
-                // Error in select()
+            } else { // Error in select()
                 perror("select");
                 exit(EXIT_FAILURE);
             }
         }
-        for (int i = 0; i < result_count; i++) {
-            printf(" %s", results[i].ip);
-            for (int j = 0; j < results[i].count; j++) {
-                if (results[i].rtt[j] == -1) {
-                    printf(" *");
-                } else {
-                    printf("  %.3f ms", results[i].rtt[j]);
-                }
-            }
-        }
-        printf("\n");
+        print_results(results, result_count);
         if (destination_reached) {
             return;
+        }
+        for (int i = 0; i < info->probes_per_hop; i++) {
+            free(results[i].rtt);
         }
     }
 }
