@@ -4,11 +4,14 @@ void traceroute(traceroute_info_t* info) {
     int udp_socket = info->udp_socket;
     int icmp_socket = info->icmp_socket;
     struct sockaddr_in dest_addr = info->dest_addr;
+    int destination_reached = 0;
 
     for (int ttl = 1; ttl <= info->max_ttl; ttl++) {
         printf("%d ", ttl);
         // Set the TTL for this packet
         setsockopt(udp_socket, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+        hop_entry_t results[info->probes_per_hop];
+        int result_count = 0;
 
         for (int probe = 0; probe < info->probes_per_hop; probe++) {
             int udp_port = info->port + ttl + probe;
@@ -44,7 +47,11 @@ void traceroute(traceroute_info_t* info) {
 
             if (select_result == 0) {
                 // Timeout occurred, no response
-                printf("* ");  // Timeout (no response)
+                if (result_count == 0) {
+                    printf(" *");
+                } else {
+                    results[result_count - 1].rtt[results[result_count - 1].count++] = -1;
+                }
             } else if (select_result > 0) {
                 // Response received
                 ssize_t bytes_received = recvfrom(icmp_socket, buffer, sizeof(buffer), 0, (struct sockaddr *)&sender_addr, &addr_len);
@@ -53,44 +60,62 @@ void traceroute(traceroute_info_t* info) {
                     exit(EXIT_FAILURE);
                 }
 
-                gettimeofday(&end_time, NULL);  // End timer
-
+                gettimeofday(&end_time, NULL);
                 // Calculate the difference in time
                 double seconds = (double)(end_time.tv_sec - start_time.tv_sec);
                 double microseconds = (double)(end_time.tv_usec - start_time.tv_usec);
                 double milliseconds = (seconds * 1000) + (microseconds / 1000);
 
-                // printf("Round-trip time: %ld ms\n", milliseconds);
-
+                char ip[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(sender_addr.sin_addr), ip, INET_ADDRSTRLEN);
+                int new = 1;
+                // Check if IP is already stored
+                for (int i = 0; i < result_count; i++) {
+                    if (strcmp(results[i].ip, ip) == 0) {
+                        results[i].rtt[results[i].count++] = milliseconds;
+                        new = 0;
+                        break;
+                    }
+                }
+                 // If IP is new, add to results
+                if (new) {
+                    strcpy(results[result_count].ip, ip);
+                    results[result_count].rtt[0] = milliseconds;
+                    results[result_count].count = 1;
+                    result_count++;
+                }
+                
                 struct ip *ip_header = (struct ip *)buffer;
                 struct icmp *icmp_header = (struct icmp *)(buffer + (ip_header->ip_hl << 2));
 
-                // Check if it's an ICMP TTL expired or Destination Unreachable message
                 if (icmp_header->icmp_type == ICMP_TIME_EXCEEDED) {
-                    printf("%s ", inet_ntoa(sender_addr.sin_addr));
-                    printf("%.3f ms ", milliseconds);
-                } else if (icmp_header->icmp_type == ICMP_DEST_UNREACH) {
-                    printf("%s (Destination unreachable) ", inet_ntoa(sender_addr.sin_addr));
-                    printf("%.3f ms\n", milliseconds);
-                    return;  // If the destination is unreachable, we can exit
-                } else if (icmp_header->icmp_type == ICMP_ECHOREPLY) {
-                    // We got the final response (destination reached)
-                    printf("%s (Reached destination) ", inet_ntoa(sender_addr.sin_addr));
-                    printf("%.3f ms\n", milliseconds);
-                    return;  // Exit the loop when the destination is reached
+                    destination_reached = 0;
+                } else if (icmp_header->icmp_type == ICMP_DEST_UNREACH || icmp_header->icmp_type == ICMP_ECHOREPLY) {
+                    destination_reached = 1;
                 } else {
                     printf("Unknown ICMP type: %d\n", icmp_header->icmp_type);
                     return;
                 }
 
-                // If we didn't get the final destination, print the hop info
-                // printf("Hop %d: %s\n", ttl, inet_ntoa(sender_addr.sin_addr));
             } else {
                 // Error in select()
                 perror("select");
                 exit(EXIT_FAILURE);
             }
         }
+        for (int i = 0; i < result_count; i++) {
+            printf(" %s", results[i].ip);
+            for (int j = 0; j < results[i].count; j++) {
+                if (results[i].rtt[j] == -1) {
+                    printf(" *");
+                } else {
+                    printf("  %.3f ms", results[i].rtt[j]);
+                }
+            }
+        }
         printf("\n");
+        if (destination_reached) {
+            return;
+        }
     }
 }

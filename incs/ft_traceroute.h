@@ -41,6 +41,12 @@ typedef struct traceroute_info {
     int* errors;
 } traceroute_info_t;
 
+typedef struct {
+    char ip[INET_ADDRSTRLEN];
+    double rtt[3];  // Store up to 3 RTTs
+    int count;       // Number of times this IP appeared (max 3)
+} hop_entry_t;
+
 void traceroute(traceroute_info_t* info);
 int is_num(const char* str);
 
