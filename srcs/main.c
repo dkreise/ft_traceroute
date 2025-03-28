@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
     init_traceroute_info(&info);
     // parse_options(argc, argv, &info);
-    while ((opt = getopt_long(argc, argv, "hm:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hm:q:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'h':
                 printf(HELP_MESSAGE);
@@ -41,6 +41,22 @@ int main(int argc, char **argv) {
                     }
                 } else {
                     fprintf(stderr, "Option `-m' (argc %d) requires an argument: `-m max_ttl'\n", optind - 1);
+                    return(1);
+                }
+                break;
+            case 'q':
+                if (optarg) {
+                    if (!is_num(optarg)) {
+                        fprintf(stderr, "Cannot handle `-q' option with arg `%s' (argc %d)\n", optarg, optind - 1);
+                        return(1);
+                    }
+                    info.probes_per_hop = atoi(optarg);
+                    if (info.probes_per_hop < 1 || info.probes_per_hop > 10) {
+                        fprintf(stderr, "no more than 10 probes per hop\n");
+                        return(1);
+                    }
+                } else {
+                    fprintf(stderr, "Option `-q' (argc %d) requires an argument: `-q probes_per_hop'\n", optind - 1);
                     return(1);
                 }
                 break;
