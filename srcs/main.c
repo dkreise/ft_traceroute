@@ -23,11 +23,14 @@ int main(int argc, char **argv) {
 
     init_traceroute_info(&info);
     // parse_options(argc, argv, &info);
-    while ((opt = getopt_long(argc, argv, "hm:q:f:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hnm:q:f:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'h':
                 printf(HELP_MESSAGE);
                 return(0);
+            case 'n':
+                info.names_conversion = 0;
+                break;
             case 'm':
                 if (optarg) {
                     if (!is_num(optarg)) {

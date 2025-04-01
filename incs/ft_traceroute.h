@@ -45,6 +45,7 @@ typedef struct traceroute_info {
 
 typedef struct {
     char ip[INET_ADDRSTRLEN];
+    char host[NI_MAXHOST];
     double *rtt;            // arr of size probes_per_hop
     int count;
 } hop_entry_t;
@@ -55,10 +56,11 @@ int is_num(const char* str);
 #define HELP_MESSAGE "Usage:\n\
   ft_traceroute [options] host [ packetlen ]\n\
 Options:\n\
+  -f first_ttl  Start from the first_ttl hop (instead from 1)\n\
   -m max_ttl    Set the max number of hops (max TTL to be\n\
                 reached). Default is 30\n\
+  -n            Do not resolve IP addresses to their domain names\n\
   -q nqueries   Set the number of probes per each hop. Default is 3\n\
-  -f first_ttl  Start from the first_ttl hop (instead from 1)\n\
   --help        Read this help and exit\n\
 Arguments:\n\
 +     host\t\tThe host to traceroute to\n\

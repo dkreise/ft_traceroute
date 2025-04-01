@@ -1,8 +1,16 @@
 #include "../incs/ft_traceroute.h"
 
-void print_results(hop_entry_t* results, int result_count) {
+void print_results(hop_entry_t* results, int result_count, int names_conversion) {
     for (int i = 0; i < result_count; i++) {
-        printf(" %s", results[i].ip);
+        if (names_conversion) {
+            if (results[i].host[0] != '\0') {
+                printf(" %s (%s)", results[i].host, results[i].ip);
+            } else {
+                printf(" %s (%s)", results[i].ip, results[i].ip);
+            }
+        } else {
+            printf(" %s", results[i].ip);
+        }
         for (int j = 0; j < results[i].count; j++) {
             if (results[i].rtt[j] == -1) {
                 printf(" *");
@@ -101,6 +109,9 @@ void traceroute(traceroute_info_t* info) {
                  // If IP is new, add to results
                 if (new) {
                     strcpy(results[result_count].ip, ip);
+                    if (getnameinfo((struct sockaddr*)&sender_addr, sizeof(sender_addr), results[result_count].host, sizeof(results[result_count].host), NULL, 0, 0) != 0) {
+                        results[result_count].host[0] = '\0';
+                    } 
                     results[result_count].rtt[0] = milliseconds;
                     results[result_count].count = 1;
                     result_count++;
@@ -123,7 +134,7 @@ void traceroute(traceroute_info_t* info) {
                 exit(EXIT_FAILURE);
             }
         }
-        print_results(results, result_count);
+        print_results(results, result_count, info->names_conversion);
         if (destination_reached) {
             return;
         }
