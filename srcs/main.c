@@ -83,9 +83,9 @@ int main(int argc, char **argv) {
     }
 
     // If no options were given, check for a destination argument
-    if (optind < argc) {
-        printf("Target: %s\n", argv[optind]);  // The destination IP/hostname
-    } else {
+    // if (optind < argc) {
+        // printf("Target: %s\n", argv[optind]);  // The destination IP/hostname
+    if (optind >= argc) {
         if (argc > 1)
             fprintf(stderr, "Specify \"host\" missing argument.\n");
         else
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
     char ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(ipv4->sin_addr), ip, INET_ADDRSTRLEN);
-    printf("IP address: %s\n", ip);
+    // printf("IP address: %s\n", ip);
 
     // for sending
     info.udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -133,6 +133,7 @@ int main(int argc, char **argv) {
     info.dest_addr.sin_family = AF_INET;
     info.dest_addr.sin_addr = ipv4->sin_addr;  // Copying resolved IP
 
+    printf("traceroute to %s (%s), %d hops max, 60 byte packets\n", destination, ip, info.max_ttl);
     traceroute(&info);
     
     close(info.udp_socket);
