@@ -21,7 +21,7 @@ void traceroute(traceroute_info_t* info) {
     int probes_per_hop = info->probes_per_hop;
     int destination_reached = 0;
 
-    for (int ttl = 1; ttl <= info->max_ttl; ttl++) {
+    for (int ttl = info->first_ttl; ttl <= info->max_ttl; ttl++) {
         printf("%2d ", ttl);
         // Set the TTL for this packet
         setsockopt(udp_socket, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));

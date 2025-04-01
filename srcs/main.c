@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
     init_traceroute_info(&info);
     // parse_options(argc, argv, &info);
-    while ((opt = getopt_long(argc, argv, "hm:q:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hm:q:f:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'h':
                 printf(HELP_MESSAGE);
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
                         return(1);
                     }
                     info.max_ttl = atoi(optarg);
-                    if (info.max_ttl < 1 || info.max_ttl > 255) {
+                    if (info.max_ttl < 1 || info.max_ttl > MAX_MAX_HOPS) {
                         fprintf(stderr, "max hops cannot be more than 255 and less than 1\n");
                         return(1);
                     }
@@ -60,6 +60,22 @@ int main(int argc, char **argv) {
                     return(1);
                 }
                 break;
+            case 'f':
+                if (optarg) {
+                    if (!is_num(optarg)) {
+                        fprintf(stderr, "Cannot handle `-f' option with arg `%s' (argc %d)\n", optarg, optind - 1);
+                        return(1);
+                    }
+                    info.first_ttl = atoi(optarg);
+                    if (info.first_ttl < 1 || info.first_ttl > MAX_MAX_HOPS) {
+                        fprintf(stderr, "first ttl cannot be more than 255 and less than 1\n");
+                        return(1);
+                    }
+                } else {
+                    fprintf(stderr, "Option `-f' (argc %d) requires an argument: `-f first_ttl'\n", optind - 1);
+                    return(1);
+                }
+                break;
             default:
                 printf(HELP_MESSAGE);
                 return(1);
@@ -70,8 +86,16 @@ int main(int argc, char **argv) {
     if (optind < argc) {
         printf("Target: %s\n", argv[optind]);  // The destination IP/hostname
     } else {
-        fprintf(stderr, "Error: No destination provided.\n");
-        return 1;
+        if (argc > 1)
+            fprintf(stderr, "Specify \"host\" missing argument.\n");
+        else
+            printf(HELP_MESSAGE);
+        return(1);
+    }
+
+    if (info.first_ttl > info.max_ttl) {
+        fprintf(stderr, "first hop out of range\n");
+        return(1);
     }
 
     const char *destination = argv[optind];
@@ -82,7 +106,7 @@ int main(int argc, char **argv) {
     hints.ai_family = AF_INET;
 
     if ((status = getaddrinfo(destination, NULL, &hints, &res)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        fprintf(stderr, "%s: %s\n", destination, gai_strerror(status));
         exit(EXIT_FAILURE);
     }
 

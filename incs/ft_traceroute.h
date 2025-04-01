@@ -23,6 +23,7 @@
 
 #define FIRST_TTL_DEFAULT 1
 #define MAX_HOPS_DEFAULT 30
+#define MAX_MAX_HOPS 255
 #define PROBES_PER_HOP_DEFAULT 3
 #define PORT_DEFAULT 33434
 #define NAMES_DEFAULT 1 // true
@@ -54,7 +55,11 @@ int is_num(const char* str);
 #define HELP_MESSAGE "Usage:\n\
   ft_traceroute [options] host [ packetlen ]\n\
 Options:\n\
-  --help\t\tRead this help and exit\n\
+  -m max_ttl    Set the max number of hops (max TTL to be\n\
+                reached). Default is 30\n\
+  -q nqueries   Set the number of probes per each hop. Default is 3\n\
+  -f first_ttl  Start from the first_ttl hop (instead from 1)\n\
+  --help        Read this help and exit\n\
 Arguments:\n\
 +     host\t\tThe host to traceroute to\n\
       packetlen\t\tThe full packet length (default is the length of an IP\n\
